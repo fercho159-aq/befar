@@ -17,6 +17,7 @@ export default function GalleryScene({
   const [loaded, setLoaded] = useState(false);
   const [direction, setDirection] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [hasInteracted, setHasInteracted] = useState(false);
   const lastScroll = useRef(0);
 
   useEffect(() => {
@@ -25,27 +26,39 @@ export default function GalleryScene({
     return () => clearTimeout(t);
   }, [products, setGalleryProducts]);
 
+  // Auto-hide hint after 6 seconds
+  useEffect(() => {
+    if (!loaded) return;
+    const t = setTimeout(() => setHasInteracted(true), 6000);
+    return () => clearTimeout(t);
+  }, [loaded]);
+
+  const markInteracted = useCallback(() => {
+    if (!hasInteracted) setHasInteracted(true);
+  }, [hasInteracted]);
+
   const goTo = useCallback(
     (index: number) => {
       const clamped = Math.max(0, Math.min(index, products.length - 1));
       if (clamped === activeGalleryIndex) return;
       setDirection(clamped > activeGalleryIndex ? 1 : -1);
       setActiveGalleryIndex(clamped);
+      markInteracted();
     },
-    [activeGalleryIndex, products.length, setActiveGalleryIndex]
+    [activeGalleryIndex, products.length, setActiveGalleryIndex, markInteracted]
   );
 
   const goNext = useCallback(() => goTo(activeGalleryIndex + 1), [activeGalleryIndex, goTo]);
   const goPrev = useCallback(() => goTo(activeGalleryIndex - 1), [activeGalleryIndex, goTo]);
 
-  // Scroll
+  // Scroll - low threshold for easy navigation
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       const now = Date.now();
-      if (now - lastScroll.current < 500) return;
+      if (now - lastScroll.current < 350) return;
       lastScroll.current = now;
-      if (e.deltaY > 15) goNext();
-      else if (e.deltaY < -15) goPrev();
+      if (e.deltaY > 5) goNext();
+      else if (e.deltaY < -5) goPrev();
     };
     window.addEventListener("wheel", handleWheel, { passive: true });
     return () => window.removeEventListener("wheel", handleWheel);
@@ -57,7 +70,7 @@ export default function GalleryScene({
     const onEnd = (e: TouchEvent) => {
       if (touchStart === null) return;
       const diff = touchStart - e.changedTouches[0].clientX;
-      if (Math.abs(diff) > 40) {
+      if (Math.abs(diff) > 25) {
         if (diff > 0) goNext();
         else goPrev();
       }
@@ -115,8 +128,8 @@ export default function GalleryScene({
       {/* Dark radial overlay */}
       <div style={{ position: "absolute", inset: 0, zIndex: 1, background: "radial-gradient(ellipse at 50% 40%, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.85) 100%)" }} />
 
-      {/* Centered artwork - adjusted padding for mobile */}
-      <div style={{ position: "absolute", inset: 0, zIndex: 2, display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 16px 140px" }}>
+      {/* Centered artwork */}
+      <div style={{ position: "absolute", inset: 0, zIndex: 2, display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 16px 180px" }}>
         <AnimatePresence mode="wait" custom={direction}>
           {imageSrc && loaded && (
             <motion.div
@@ -137,7 +150,7 @@ export default function GalleryScene({
                   width={800}
                   height={p.aspect_ratio === "2:3" ? 1200 : p.aspect_ratio === "3:2" ? 533 : p.aspect_ratio === "16:9" ? 450 : p.aspect_ratio === "4:3" ? 600 : 800}
                   sizes="(max-width: 768px) 90vw, 700px"
-                  style={{ width: "100%", height: "auto", maxHeight: "calc(100dvh - 220px)", objectFit: "contain", display: "block" }}
+                  style={{ width: "100%", height: "auto", maxHeight: "calc(100dvh - 260px)", objectFit: "contain", display: "block" }}
                   priority
                 />
               </Link>
@@ -148,105 +161,262 @@ export default function GalleryScene({
 
       {/* Gradients */}
       <div style={{ position: "absolute", inset: 0, zIndex: 3, pointerEvents: "none" }}>
-        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "40%", background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 40%, transparent 100%)" }} />
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "45%", background: "linear-gradient(to top, rgba(0,0,0,0.97) 0%, rgba(0,0,0,0.7) 35%, transparent 100%)" }} />
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 80, background: "linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 100%)" }} />
       </div>
 
-      {/* Bottom info - compact for mobile */}
+      {/* Bottom info panel */}
       <AnimatePresence mode="wait">
         {p && loaded && (
           <motion.div
             key={`info-${p.handle}`}
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.6, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-            style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 10, pointerEvents: "none", padding: "0 16px 16px" }}
+            style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 10, padding: "0 clamp(16px, 4vw, 48px) clamp(20px, 3vh, 32px)" }}
           >
-            {/* Mobile: stacked layout. Desktop: side by side */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {/* Title row */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {/* Title + location */}
               <div>
                 {p.location && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                    <span style={{ width: 12, height: 1, background: "rgba(255,255,255,0.2)", display: "block" }} />
-                    <span className="font-body" style={{ fontSize: 9, fontWeight: 300, letterSpacing: "0.2em", color: "rgba(255,255,255,0.25)", textTransform: "uppercase" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <span style={{ width: 16, height: 1, background: "rgba(255,255,255,0.25)", display: "block" }} />
+                    <span className="font-body" style={{ fontSize: 10, fontWeight: 300, letterSpacing: "0.2em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase" }}>
                       {p.location}
                     </span>
                   </div>
                 )}
-                <h1 className="font-display" style={{ fontSize: "clamp(1.25rem, 5vw, 3rem)", fontWeight: 300, color: "rgba(255,255,255,0.92)", lineHeight: 1.15, letterSpacing: "0.02em", margin: 0 }}>
+                <h1 className="font-display" style={{ fontSize: "clamp(1.4rem, 5vw, 3rem)", fontWeight: 300, color: "rgba(255,255,255,0.94)", lineHeight: 1.15, letterSpacing: "0.02em", margin: 0 }}>
                   {p.title}
                 </h1>
               </div>
 
-              {/* Price + CTA + Counter row */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                  {p.min_price > 0 && (
-                    <span className="font-body" style={{ fontSize: 11, fontWeight: 300, color: "rgba(255,255,255,0.3)" }}>
-                      Desde <span style={{ color: "rgba(255,255,255,0.55)" }}>${Number(p.min_price).toLocaleString("es-MX")}</span> MXN
-                    </span>
-                  )}
-                  <Link
-                    href={`/product/${p.handle}`}
-                    className="font-body"
-                    style={{ pointerEvents: "auto", display: "flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 300, letterSpacing: "0.12em", color: "rgba(255,255,255,0.45)", textTransform: "uppercase", textDecoration: "none" }}
-                  >
-                    <span>Ver obra</span>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <path d="M5 12h14M12 5l7 7-7 7" />
-                    </svg>
-                  </Link>
-                </div>
-
-                {/* Counter + arrows */}
-                <div style={{ display: "flex", alignItems: "center", gap: 8, pointerEvents: "auto", flexShrink: 0 }}>
-                  <span className="font-display" style={{ fontSize: 16, fontWeight: 300, color: "rgba(255,255,255,0.5)", fontVariantNumeric: "tabular-nums" }}>
-                    {String(activeGalleryIndex + 1).padStart(2, "0")}
-                    <span style={{ fontSize: 9, color: "rgba(255,255,255,0.15)", margin: "0 2px" }}>/</span>
-                    <span style={{ fontSize: 9, color: "rgba(255,255,255,0.15)" }}>{String(products.length).padStart(2, "0")}</span>
+              {/* Price + CTA row */}
+              <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                {p.min_price > 0 && (
+                  <span className="font-body" style={{ fontSize: 13, fontWeight: 300, color: "rgba(255,255,255,0.35)" }}>
+                    Desde <span style={{ color: "rgba(255,255,255,0.6)" }}>${Number(p.min_price).toLocaleString("es-MX")}</span> MXN
                   </span>
-                  <div style={{ display: "flex", gap: 3 }}>
-                    <button
-                      onClick={goPrev}
-                      disabled={activeGalleryIndex === 0}
-                      style={{ width: 28, height: 28, border: "1px solid rgba(255,255,255,0.08)", background: "none", display: "flex", alignItems: "center", justifyContent: "center", color: activeGalleryIndex === 0 ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.3)", cursor: activeGalleryIndex === 0 ? "default" : "pointer" }}
-                    >
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M15 18l-6-6 6-6" /></svg>
-                    </button>
-                    <button
-                      onClick={goNext}
-                      disabled={activeGalleryIndex === products.length - 1}
-                      style={{ width: 28, height: 28, border: "1px solid rgba(255,255,255,0.08)", background: "none", display: "flex", alignItems: "center", justifyContent: "center", color: activeGalleryIndex === products.length - 1 ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.3)", cursor: activeGalleryIndex === products.length - 1 ? "default" : "pointer" }}
-                    >
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 18l6-6-6-6" /></svg>
-                    </button>
-                  </div>
-                </div>
+                )}
+                <Link
+                  href={`/product/${p.handle}`}
+                  className="font-body"
+                  style={{
+                    pointerEvents: "auto",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "8px 18px",
+                    fontSize: 10,
+                    fontWeight: 400,
+                    letterSpacing: "0.14em",
+                    color: "rgba(255,255,255,0.85)",
+                    textTransform: "uppercase",
+                    textDecoration: "none",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    background: "rgba(255,255,255,0.04)",
+                    transition: "all 0.3s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.35)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
+                  }}
+                >
+                  <span>Ver obra</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                </Link>
               </div>
 
-              {/* Progress bar - full width */}
-              <div style={{ width: "100%", height: 1, background: "rgba(255,255,255,0.05)", position: "relative", overflow: "hidden" }}>
-                <motion.div style={{ position: "absolute", top: 0, left: 0, bottom: 0, background: "rgba(255,255,255,0.3)" }} animate={{ width: `${progress}%` }} transition={{ duration: 0.45, ease: "easeOut" }} />
+              {/* Navigation row: counter + arrows + progress */}
+              <div style={{ display: "flex", alignItems: "center", gap: 12, pointerEvents: "auto" }}>
+                {/* Prev button */}
+                <button
+                  onClick={goPrev}
+                  disabled={activeGalleryIndex === 0}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    background: "rgba(255,255,255,0.03)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: activeGalleryIndex === 0 ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.5)",
+                    cursor: activeGalleryIndex === 0 ? "default" : "pointer",
+                    transition: "all 0.3s",
+                    flexShrink: 0,
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M15 18l-6-6 6-6" /></svg>
+                </button>
+
+                {/* Progress bar + counter */}
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span className="font-body" style={{ fontSize: 10, fontWeight: 300, letterSpacing: "0.15em", color: "rgba(255,255,255,0.25)", textTransform: "uppercase" }}>
+                      {String(activeGalleryIndex + 1).padStart(2, "0")} de {String(products.length).padStart(2, "0")}
+                    </span>
+                    <Link
+                      href="/gallery"
+                      className="font-body"
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 300,
+                        letterSpacing: "0.12em",
+                        color: "rgba(255,255,255,0.3)",
+                        textDecoration: "none",
+                        textTransform: "uppercase",
+                        transition: "color 0.3s",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.6)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.3)"; }}
+                    >
+                      {"Ver toda la colecci\u00f3n"}
+                    </Link>
+                  </div>
+                  <div style={{ width: "100%", height: 2, background: "rgba(255,255,255,0.06)", position: "relative", overflow: "hidden", borderRadius: 1 }}>
+                    <motion.div
+                      style={{ position: "absolute", top: 0, left: 0, bottom: 0, background: "rgba(255,255,255,0.35)", borderRadius: 1 }}
+                      animate={{ width: `${progress}%` }}
+                      transition={{ duration: 0.45, ease: "easeOut" }}
+                    />
+                  </div>
+                </div>
+
+                {/* Next button */}
+                <button
+                  onClick={goNext}
+                  disabled={activeGalleryIndex === products.length - 1}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    background: "rgba(255,255,255,0.03)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: activeGalleryIndex === products.length - 1 ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.5)",
+                    cursor: activeGalleryIndex === products.length - 1 ? "default" : "pointer",
+                    transition: "all 0.3s",
+                    flexShrink: 0,
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 18l6-6-6-6" /></svg>
+                </button>
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Desktop scroll hint */}
+      {/* ── Swipe / Scroll hint overlay ── */}
+      <AnimatePresence>
+        {loaded && !hasInteracted && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6, delay: 0.8 }}
+            style={{
+              position: "absolute",
+              inset: 0,
+              zIndex: 20,
+              pointerEvents: "none",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {/* Centered hint card */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.5, delay: 1 }}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 16,
+                padding: "24px 32px",
+                background: "rgba(0,0,0,0.6)",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              {/* Swipe icon (mobile) */}
+              <div className="flex md:hidden" style={{ flexDirection: "column", alignItems: "center", gap: 10 }}>
+                <motion.div
+                  animate={{ x: [0, -16, 0, 16, 0] }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                  style={{ display: "flex", alignItems: "center", gap: 4 }}
+                >
+                  <svg width="6" height="10" viewBox="0 0 6 10" fill="none" style={{ opacity: 0.3 }}>
+                    <path d="M5 1L1 5L5 9" stroke="white" strokeWidth="1.2" />
+                  </svg>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.2">
+                    <path d="M12 18V6M8 2h8v4H8V2z" />
+                    <circle cx="12" cy="12" r="1" fill="rgba(255,255,255,0.4)" stroke="none" />
+                    <path d="M7 8c0 0-2 2-2 5s2 5 2 5" />
+                    <path d="M17 8c0 0 2 2 2 5s-2 5-2 5" />
+                  </svg>
+                  <svg width="6" height="10" viewBox="0 0 6 10" fill="none" style={{ opacity: 0.3 }}>
+                    <path d="M1 1L5 5L1 9" stroke="white" strokeWidth="1.2" />
+                  </svg>
+                </motion.div>
+                <span className="font-body" style={{ fontSize: 11, fontWeight: 300, letterSpacing: "0.15em", color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>
+                  Desliza para explorar
+                </span>
+              </div>
+
+              {/* Scroll icon (desktop) */}
+              <div className="hidden md:flex" style={{ flexDirection: "column", alignItems: "center", gap: 10 }}>
+                {/* Mouse icon with animated scroll dot */}
+                <div style={{ width: 22, height: 34, border: "1.5px solid rgba(255,255,255,0.3)", borderRadius: 11, position: "relative", display: "flex", justifyContent: "center" }}>
+                  <motion.div
+                    animate={{ y: [4, 12, 4] }}
+                    transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                    style={{ width: 3, height: 3, borderRadius: "50%", background: "rgba(255,255,255,0.6)", position: "absolute", top: 6 }}
+                  />
+                </div>
+                <span className="font-body" style={{ fontSize: 11, fontWeight: 300, letterSpacing: "0.15em", color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>
+                  Scroll para explorar
+                </span>
+              </div>
+
+              {/* Or use arrows hint */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 24, height: 1, background: "rgba(255,255,255,0.08)" }} />
+                <span className="font-body" style={{ fontSize: 9, fontWeight: 300, letterSpacing: "0.1em", color: "rgba(255,255,255,0.2)" }}>
+                  o usa las flechas
+                </span>
+                <div style={{ width: 24, height: 1, background: "rgba(255,255,255,0.08)" }} />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Desktop side scroll hint (subtle, always visible) */}
       <div className="hidden md:flex" style={{ position: "absolute", left: "clamp(20px, 2.5vw, 48px)", top: "50%", transform: "translateY(-50%)", zIndex: 10, pointerEvents: "none", flexDirection: "column", alignItems: "center", gap: 8 }}>
         <div style={{ width: 1, height: 32, background: "rgba(255,255,255,0.04)" }} />
-        <span className="font-body" style={{ fontSize: 8, fontWeight: 300, letterSpacing: "0.18em", color: "rgba(255,255,255,0.1)", textTransform: "uppercase", writingMode: "vertical-lr" }}>Scroll to explore</span>
+        <span className="font-body" style={{ fontSize: 8, fontWeight: 300, letterSpacing: "0.18em", color: "rgba(255,255,255,0.1)", textTransform: "uppercase", writingMode: "vertical-lr" }}>Scroll</span>
         <div style={{ width: 1, height: 32, background: "rgba(255,255,255,0.04)" }} />
       </div>
 
-      {/* Preload */}
+      {/* Preload adjacent images */}
       {prevImg && <link rel="preload" as="image" href={prevImg} />}
       {nextImg && <link rel="preload" as="image" href={nextImg} />}
 
-      {/* Intro */}
+      {/* Intro screen */}
       <AnimatePresence>
         {!loaded && (
           <motion.div exit={{ opacity: 0 }} transition={{ duration: 0.5 }} style={{ position: "absolute", inset: 0, zIndex: 50, background: "#000", display: "flex", alignItems: "center", justifyContent: "center" }}>
