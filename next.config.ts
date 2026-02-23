@@ -1,7 +1,22 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "cdn.shopify.com",
+        pathname: "/s/files/**",
+      },
+    ],
+  },
+  // Transpile Three.js related packages
+  transpilePackages: [
+    "three",
+    "@react-three/fiber",
+    "@react-three/drei",
+    "@react-three/postprocessing",
+  ],
 };
 
 export default nextConfig;
