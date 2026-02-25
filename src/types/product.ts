@@ -12,6 +12,8 @@ export interface Product {
   seo_description: string;
   status: string;
   aspect_ratio: string | null;
+  width_cm: number | null;
+  height_cm: number | null;
   location: string | null;
   certification: string;
   created_at: string;

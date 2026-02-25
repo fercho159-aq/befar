@@ -8,17 +8,16 @@ import type { ProductWithDetails } from "@/types/product";
 
 const CATEGORY_FILTERS = [
   { key: null, label: "Todas" },
-  { key: "Fotograf\u00eda a Color", label: "Color" },
-  { key: "Architecture", label: "Arquitectura" },
   { key: "NATURE", label: "Naturaleza" },
-  { key: "Arte", label: "Arte" },
+  { key: "ARQUITECTURE", label: "Arquitectura" },
+  { key: "ART", label: "Arte" },
 ];
 
 // Map aspect ratio to row span so portrait images fill vertical space
 function getRowSpan(ar: string | null): number {
-  if (ar === "2:3") return 2;  // portrait - tall
-  if (ar === "1:1") return 2;  // square - medium-tall
-  return 1;                     // landscape (3:2, 16:9, 4:3)
+  if (ar === "1:2" || ar === "1:3") return 3;  // very tall
+  if (ar === "2:3" || ar === "1:1") return 2;   // portrait/square
+  return 1;                                       // landscape (3:2, 2:1, 3:1, 4:1)
 }
 
 export default function GalleryGrid({

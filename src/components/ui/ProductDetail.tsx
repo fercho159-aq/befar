@@ -348,7 +348,7 @@ export default function ProductDetail({ product }: { product: ProductWithDetails
             {product.tags && product.tags.length > 0 && (
               <div style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.04)" }}>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {product.tags.filter((t) => !["3:2", "2:3", "16:9", "4:3", "1:1"].includes(t)).map((tag) => (
+                  {product.tags.filter((t) => !["1:1","1:2","2:1","1:3","3:1","2:3","3:2","4:1","1A1","1A2","1A3","2A1","2A3","3A1","3A2","4A1"].includes(t)).map((tag) => (
                     <span key={tag} className="font-body" style={{ fontSize: 9, letterSpacing: "0.1em", color: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.04)", padding: "4px 10px" }}>
                       {tag}
                     </span>

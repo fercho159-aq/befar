@@ -1,5 +1,5 @@
 import { neon } from "@neondatabase/serverless";
-import { createReadStream } from "fs";
+import { createReadStream, existsSync, copyFileSync, mkdirSync, readdirSync } from "fs";
 import { parse } from "csv-parse";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -11,26 +11,94 @@ const DATABASE_URL =
 
 const sql = neon(DATABASE_URL);
 
-function extractLocationFromHtml(html) {
-  if (!html) return null;
-  const match = html.match(/<strong[^>]*>Lugar:<\/strong>\s*(.*?)(?:<br|<\/p)/i);
-  if (match) {
-    return match[1].replace(/<[^>]+>/g, "").trim();
-  }
-  return null;
+// --- Pricing ---
+const DI_BOND_PRICE_PER_CM2 = 1.80;
+const CHROMALUXE_PRICE_PER_CM2 = 2.16;
+
+// --- Size tables per format ---
+const FORMAT_SIZES = {
+  "1:1": [[30, 30], [60, 60], [90, 90]],
+  "2:3": [[30, 45], [60, 90], [90, 135]],
+  "3:2": [[45, 30], [90, 60], [135, 90]],
+  "2:1": [[60, 30], [120, 60], [180, 90]],
+  "1:2": [[30, 60], [60, 120], [90, 180]],
+  "3:1": [[90, 30], [180, 60], null],
+  "1:3": [[30, 90], [60, 180], null],
+  "4:1": [[120, 30], null, null],
+};
+
+// --- Slugify ---
+function slugify(text) {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
 }
 
-function extractAspectRatioFromTags(tags) {
-  if (!tags) return null;
-  const ratios = ["3:2", "2:3", "16:9", "1:1", "4:3", "3:4"];
-  for (const r of ratios) {
-    if (tags.includes(r)) return r;
+// --- Levenshtein distance for fuzzy matching ---
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return dp[m][n];
+}
+
+// --- Image resolution (gallery-new ONLY) ---
+const projectRoot = resolve(__dirname, "..");
+const galleryNewDir = resolve(projectRoot, "public/gallery-new");
+const productsDir = resolve(projectRoot, "public/products");
+
+// Pre-load gallery-new file list for fuzzy matching
+const galleryNewFiles = readdirSync(galleryNewDir).filter(f => f.endsWith(".jpg")).map(f => f.replace(".jpg", ""));
+
+function fileSlug(filename) {
+  return filename
+    .replace(/\.(dng|tif|tiff|jpg|jpeg|png|cr2|psd|raw)$/i, "")
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-");
+}
+
+function findImageInGalleryNew(filename) {
+  if (!filename) return null;
+  const slug = fileSlug(filename);
+
+  // 1. Exact match
+  if (galleryNewFiles.includes(slug)) {
+    return slug;
   }
+
+  // 2. Contains match (one starts with the other)
+  const contains = galleryNewFiles.find(f => slug.startsWith(f) || f.startsWith(slug));
+  if (contains) {
+    return contains;
+  }
+
+  // 3. Levenshtein fuzzy match
+  let best = null, bestDist = Infinity;
+  for (const gf of galleryNewFiles) {
+    const d = levenshtein(slug, gf);
+    if (d < bestDist) { bestDist = d; best = gf; }
+  }
+  const threshold = Math.max(Math.floor(slug.length * 0.3), 2);
+  if (bestDist <= threshold) {
+    return best;
+  }
+
   return null;
 }
 
 async function seed() {
-  const csvPath = resolve(__dirname, "../../products_export_1.csv");
+  const csvPath = "/Users/fernandotrejo/Downloads/emilio - Hoja 1.csv";
   console.log("Reading CSV from:", csvPath);
 
   const records = [];
@@ -44,138 +112,138 @@ async function seed() {
 
   console.log(`Parsed ${records.length} rows from CSV`);
 
-  // Group by handle
-  const productMap = new Map();
+  mkdirSync(productsDir, { recursive: true });
 
-  for (const row of records) {
-    const handle = row["Handle"];
-    if (!handle) continue;
-
-    if (!productMap.has(handle)) {
-      productMap.set(handle, { main: null, variants: [], images: [] });
-    }
-
-    const entry = productMap.get(handle);
-
-    // First row for this handle has the product-level data
-    if (row["Title"] && !entry.main) {
-      const tags = row["Tags"]
-        ? row["Tags"]
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean)
-        : [];
-
-      entry.main = {
-        handle,
-        title: row["Title"],
-        body_html: row["Body (HTML)"] || "",
-        vendor: row["Vendor"] || "EBEHAR",
-        product_category: row["Product Category"] || "",
-        product_type: row["Type"] || "",
-        tags,
-        published: row["Published"] === "true",
-        seo_title: row["SEO Title"] || "",
-        seo_description: row["SEO Description"] || "",
-        status: row["Status"] || "active",
-        aspect_ratio: extractAspectRatioFromTags(row["Tags"]),
-        location: extractLocationFromHtml(row["Body (HTML)"]),
-        certification: "Original Certified EBEHAR",
-      };
-    }
-
-    // Every row is a variant
-    if (row["Variant SKU"]) {
-      entry.variants.push({
-        sku: row["Variant SKU"],
-        option1_name: row["Option1 Name"] || null,
-        option1_value: row["Option1 Value"] || null,
-        option2_name: row["Option2 Name"] || null,
-        option2_value: row["Option2 Value"] || null,
-        option3_name: row["Option3 Name"] || null,
-        option3_value: row["Option3 Value"] || null,
-        price: parseFloat(row["Variant Price"]) || 0,
-        compare_at_price: row["Variant Compare At Price"]
-          ? parseFloat(row["Variant Compare At Price"])
-          : null,
-        grams: parseInt(row["Variant Grams"]) || 0,
-        inventory_qty: parseInt(row["Variant Inventory Qty"]) || 0,
-        requires_shipping: row["Variant Requires Shipping"] === "true",
-        variant_image: row["Variant Image"] || null,
-        weight_unit: row["Variant Weight Unit"] || "g",
-      });
-    }
-
-    // Collect images (deduplicate by src)
-    if (row["Image Src"]) {
-      const existing = entry.images.find((i) => i.src === row["Image Src"]);
-      if (!existing) {
-        entry.images.push({
-          src: row["Image Src"],
-          position: parseInt(row["Image Position"]) || 1,
-          alt_text: row["Image Alt Text"] || "",
-        });
-      }
-    }
-  }
-
-  console.log(`Found ${productMap.size} unique products`);
+  const handleCounts = new Map();
 
   let productCount = 0;
   let variantCount = 0;
   let imageCount = 0;
+  let imagesCopied = 0;
+  let deactivated = 0;
 
-  for (const [handle, data] of productMap) {
-    if (!data.main) {
-      console.warn(`Skipping ${handle} - no main product data`);
-      continue;
-    }
+  for (const row of records) {
+    const nombre = (row["Nombre de la obra *"] || "").trim();
+    if (!nombre) continue;
 
-    const p = data.main;
+    // Generate unique handle
+    let baseHandle = slugify(nombre);
+    if (!baseHandle) baseHandle = `producto-${records.indexOf(row) + 1}`;
+
+    const count = handleCounts.get(baseHandle) || 0;
+    handleCounts.set(baseHandle, count + 1);
+    const handle = count > 0 ? `${baseHandle}-${count + 1}` : baseHandle;
+
+    // Extract fields
+    const description = (row["Descripción *"] || "").trim();
+    const category = (row["Categoría *"] || "").trim();
+    const formato = (row["Formato (relación) *"] || "").trim();
+    const anchoX = parseInt(row["Ancho X (cm) *"]) || 0;
+    const altoY = parseInt(row["Alto Y (cm) *"]) || 0;
+    const archivo = (row["Nombre del archivo *"] || "").trim();
+    const stock = parseInt(row["Stock *"]) || 5;
+
+    // Parse tags + add category
+    const rawTags = (row["Tags / Palabras clave"] || "")
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+    const tags = [...new Set([...rawTags, category])].filter(Boolean);
+
+    const aspect_ratio = formato || null;
+
+    // Check if image exists in gallery-new
+    const matchedFile = findImageInGalleryNew(archivo);
+    const hasImage = !!matchedFile;
 
     try {
-      // Insert product
       const result = await sql`
-        INSERT INTO products (handle, title, body_html, vendor, product_category, product_type, tags, published, seo_title, seo_description, status, aspect_ratio, location, certification)
-        VALUES (${p.handle}, ${p.title}, ${p.body_html}, ${p.vendor}, ${p.product_category}, ${p.product_type}, ${p.tags}, ${p.published}, ${p.seo_title}, ${p.seo_description}, ${p.status}, ${p.aspect_ratio}, ${p.location}, ${p.certification})
-        ON CONFLICT (handle) DO UPDATE SET title = EXCLUDED.title
+        INSERT INTO products (
+          handle, title, body_html, vendor, product_category, product_type,
+          tags, published, seo_title, seo_description, status,
+          aspect_ratio, width_cm, height_cm, location, certification
+        )
+        VALUES (
+          ${handle}, ${nombre}, ${description}, ${"EBEHAR"}, ${category}, ${"Fotografía"},
+          ${tags}, ${hasImage}, ${nombre}, ${description}, ${hasImage ? "active" : "draft"},
+          ${aspect_ratio}, ${anchoX}, ${altoY}, ${null}, ${"Original Certified EBEHAR"}
+        )
         RETURNING id
       `;
 
       const productId = result[0].id;
       productCount++;
+      if (!hasImage) deactivated++;
 
-      // Insert variants
-      for (const v of data.variants) {
-        await sql`
-          INSERT INTO variants (product_id, sku, option1_name, option1_value, option2_name, option2_value, option3_name, option3_value, price, compare_at_price, grams, inventory_qty, requires_shipping, variant_image, weight_unit)
-          VALUES (${productId}, ${v.sku}, ${v.option1_name}, ${v.option1_value}, ${v.option2_name}, ${v.option2_value}, ${v.option3_name}, ${v.option3_value}, ${v.price}, ${v.compare_at_price}, ${v.grams}, ${v.inventory_qty}, ${v.requires_shipping}, ${v.variant_image}, ${v.weight_unit})
-          ON CONFLICT (sku) DO UPDATE SET price = EXCLUDED.price
-        `;
-        variantCount++;
+      // --- Generate variants ---
+      const sizes = FORMAT_SIZES[formato];
+      if (sizes) {
+        for (const size of sizes) {
+          if (!size) continue;
+          const [w, h] = size;
+
+          const materials = [
+            { name: "Di bond Aluminio", code: "DB", pricePerCm2: DI_BOND_PRICE_PER_CM2 },
+            { name: "Chromaluxe Brilloso", code: "CH", pricePerCm2: CHROMALUXE_PRICE_PER_CM2 },
+          ];
+
+          for (const mat of materials) {
+            const price = w * h * mat.pricePerCm2;
+            const sku = `${handle}-${mat.code}-${w}x${h}`;
+            const sizeLabel = `${w}\u00d7${h} cm`;
+
+            await sql`
+              INSERT INTO variants (
+                product_id, sku,
+                option1_name, option1_value,
+                option2_name, option2_value,
+                option3_name, option3_value,
+                price, inventory_qty, requires_shipping
+              )
+              VALUES (
+                ${productId}, ${sku},
+                ${"Tipo de Producto"}, ${"Arte Impreso"},
+                ${"Material"}, ${mat.name},
+                ${"Tamaño"}, ${sizeLabel},
+                ${price}, ${stock}, ${true}
+              )
+            `;
+            variantCount++;
+          }
+        }
       }
 
-      // Insert images
-      for (const img of data.images) {
+      // --- Copy image from gallery-new ---
+      if (matchedFile) {
+        const srcPath = resolve(galleryNewDir, `${matchedFile}.jpg`);
+        const destFilename = `${handle}.jpg`;
+        const destPath = resolve(productsDir, destFilename);
+        const imageSrc = `/products/${destFilename}`;
+
+        if (!existsSync(destPath)) {
+          copyFileSync(srcPath, destPath);
+          imagesCopied++;
+        }
+
         await sql`
           INSERT INTO product_images (product_id, src, position, alt_text)
-          VALUES (${productId}, ${img.src}, ${img.position}, ${img.alt_text})
+          VALUES (${productId}, ${imageSrc}, ${1}, ${nombre})
         `;
         imageCount++;
       }
 
-      if (productCount % 10 === 0) {
-        console.log(`  Inserted ${productCount} products...`);
+      if (productCount % 50 === 0) {
+        console.log(`  Inserted ${productCount} products, ${variantCount} variants...`);
       }
     } catch (err) {
-      console.error(`Error inserting ${handle}:`, err.message);
+      console.error(`Error inserting "${nombre}" (${handle}):`, err.message);
     }
   }
 
   console.log(`\nSeed complete!`);
-  console.log(`  Products: ${productCount}`);
+  console.log(`  Products: ${productCount} (${productCount - deactivated} active, ${deactivated} draft)`);
   console.log(`  Variants: ${variantCount}`);
-  console.log(`  Images: ${imageCount}`);
+  console.log(`  Images: ${imageCount} (${imagesCopied} copied from gallery-new)`);
 }
 
 seed().catch(console.error);

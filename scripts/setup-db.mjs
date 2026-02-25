@@ -27,6 +27,8 @@ async function setup() {
       seo_description TEXT,
       status VARCHAR(50) DEFAULT 'active',
       aspect_ratio VARCHAR(10),
+      width_cm INTEGER,
+      height_cm INTEGER,
       location VARCHAR(255),
       certification VARCHAR(255),
       created_at TIMESTAMPTZ DEFAULT NOW(),
