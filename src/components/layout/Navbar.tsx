@@ -18,11 +18,34 @@ export default function Navbar() {
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const [scrolled, setScrolled] = useState(false);
 
+  // Scroll detection
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (menuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [menuOpen]);
+
+  // Close menu on Escape key
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") toggleMenu();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [menuOpen, toggleMenu]);
 
   return (
     <>
@@ -299,8 +322,8 @@ export default function Navbar() {
             transition={{ duration: 0.35 }}
             style={{ position: "fixed", inset: 0, zIndex: 45 }}
           >
-            {/* Background */}
-            <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.97)" }} />
+            {/* Background – tap to close */}
+            <div onClick={toggleMenu} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.97)" }} />
 
             {/* Decorative circle */}
             <div

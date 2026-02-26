@@ -74,7 +74,12 @@ export const useStore = create<AppState>((set, get) => ({
               i.variant.sku === sku ? { ...i, quantity } : i
             ),
     })),
-  toggleCart: () => set((state) => ({ cartOpen: !state.cartOpen })),
+  toggleCart: () =>
+    set((state) => ({
+      cartOpen: !state.cartOpen,
+      // Close mobile menu when opening cart
+      menuOpen: !state.cartOpen ? false : state.menuOpen,
+    })),
   cartTotal: () =>
     get().cart.reduce(
       (sum, item) => sum + item.variant.price * item.quantity,
