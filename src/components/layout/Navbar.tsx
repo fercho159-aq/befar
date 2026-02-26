@@ -105,7 +105,6 @@ export default function Navbar() {
           {/* Desktop nav links (center) */}
           <div
             style={{
-              display: "flex",
               alignItems: "center",
               gap: "clamp(24px, 3vw, 36px)",
             }}
