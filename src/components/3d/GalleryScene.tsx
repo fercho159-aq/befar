@@ -260,17 +260,15 @@ export default function GalleryScene({
               >
                 <Link href={`/product/${p.handle}`} style={{ display: "block", position: "relative", width: "100%", cursor: "pointer" }}>
                   <div style={{ position: "absolute", inset: "8px -8px -8px 8px", background: "rgba(0,0,0,0.5)", filter: "blur(24px)", zIndex: -1 }} />
-                  <div style={{ background: "#ffffff", padding: 12 }}>
-                    <Image
-                      src={imageSrc}
-                      alt={p.title}
-                      width={800}
-                      height={p.aspect_ratio === "2:3" ? 1200 : p.aspect_ratio === "3:2" ? 533 : p.aspect_ratio === "16:9" ? 450 : p.aspect_ratio === "4:3" ? 600 : 800}
-                      sizes="(max-width: 768px) 90vw, 700px"
-                      style={{ width: "100%", height: "auto", maxHeight: "calc(100dvh - 300px)", objectFit: "contain", display: "block" }}
-                      priority
-                    />
-                  </div>
+                  <Image
+                    src={imageSrc}
+                    alt={p.title}
+                    width={800}
+                    height={p.aspect_ratio === "2:3" ? 1200 : p.aspect_ratio === "3:2" ? 533 : p.aspect_ratio === "16:9" ? 450 : p.aspect_ratio === "4:3" ? 600 : 800}
+                    sizes="(max-width: 768px) 90vw, 700px"
+                    style={{ width: "100%", height: "auto", maxHeight: "calc(100dvh - 280px)", objectFit: "contain", display: "block" }}
+                    priority
+                  />
                 </Link>
               </motion.div>
             )}

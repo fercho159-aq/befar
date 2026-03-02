@@ -13,6 +13,12 @@ const CATEGORY_FILTERS = [
   { key: "ART", label: "Arte" },
 ];
 
+// Map aspect ratio to row span so portrait images fill vertical space
+function getRowSpan(ar: string | null): number {
+  if (ar === "1:2" || ar === "1:3") return 3;  // very tall
+  if (ar === "2:3" || ar === "1:1") return 2;   // portrait/square
+  return 1;                                       // landscape (3:2, 2:1, 3:1, 4:1)
+}
 
 export default function GalleryGrid({
   products,
@@ -131,11 +137,12 @@ export default function GalleryGrid({
         {filteredProducts.length} obras
       </p>
 
-      {/* Grid - uniform cards */}
+      {/* Grid - mosaic with auto-rows to eliminate gaps */}
       <div
         style={{
           display: "grid",
-          gap: 6,
+          gridAutoRows: "clamp(140px, 22vw, 200px)",
+          gap: 3,
         }}
         className="grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
       >
@@ -143,6 +150,7 @@ export default function GalleryGrid({
           {filteredProducts.map((product, i) => {
             const imageSrc = product.images?.[0]?.src;
             const isHovered = hoveredProduct === product.handle;
+            const rowSpan = getRowSpan(product.aspect_ratio);
 
             return (
               <motion.div
@@ -152,115 +160,116 @@ export default function GalleryGrid({
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.96 }}
                 transition={{ delay: Math.min(i * 0.02, 0.4), duration: 0.4 }}
+                style={{
+                  gridRow: `span ${rowSpan}`,
+                }}
               >
                 <Link
                   href={`/product/${product.handle}`}
                   style={{
                     display: "block",
                     position: "relative",
-                    background: "#ffffff",
+                    overflow: "hidden",
+                    background: "#0a0a0a",
                     textDecoration: "none",
                     width: "100%",
-                    aspectRatio: "1 / 1",
-                    padding: 12,
+                    height: "100%",
                   }}
                   onMouseEnter={() => setHoveredProduct(product.handle)}
                   onMouseLeave={() => setHoveredProduct(null)}
                 >
-                  <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden" }}>
-                    {imageSrc ? (
-                      <Image
-                        src={imageSrc}
-                        alt={product.title}
-                        fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
-                        style={{
-                          objectFit: "contain",
-                          transition: "transform 0.7s cubic-bezier(0.22, 1, 0.36, 1)",
-                          transform: isHovered ? "scale(1.05)" : "scale(1)",
-                        }}
-                      />
-                    ) : (
-                      <div
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          background: "#f5f5f5",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <span style={{ color: "rgba(0,0,0,0.15)", fontSize: 11 }}>
-                          Sin imagen
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Hover overlay */}
+                  {imageSrc ? (
+                    <Image
+                      src={imageSrc}
+                      alt={product.title}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                      style={{
+                        objectFit: "cover",
+                        transition: "transform 0.7s cubic-bezier(0.22, 1, 0.36, 1)",
+                        transform: isHovered ? "scale(1.05)" : "scale(1)",
+                      }}
+                    />
+                  ) : (
                     <div
                       style={{
-                        position: "absolute",
-                        inset: 0,
-                        background: isHovered
-                          ? "linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.15) 50%, transparent 100%)"
-                          : "transparent",
-                        transition: "all 0.5s ease",
+                        width: "100%",
+                        height: "100%",
+                        background: "#111",
                         display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "flex-end",
-                        padding: "clamp(8px, 1.5vw, 16px)",
+                        alignItems: "center",
+                        justifyContent: "center",
                       }}
                     >
-                      <div
+                      <span style={{ color: "rgba(255,255,255,0.08)", fontSize: 11 }}>
+                        Sin imagen
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Hover overlay */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      background: isHovered
+                        ? "linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.15) 50%, transparent 100%)"
+                        : "linear-gradient(to top, rgba(0,0,0,0.25) 0%, transparent 25%)",
+                      transition: "all 0.5s ease",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "flex-end",
+                      padding: "clamp(12px, 2vw, 20px)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        transform: isHovered ? "translateY(0)" : "translateY(6px)",
+                        opacity: isHovered ? 1 : 0,
+                        transition: "all 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
+                      }}
+                    >
+                      <h3
+                        className="font-display"
                         style={{
-                          transform: isHovered ? "translateY(0)" : "translateY(6px)",
-                          opacity: isHovered ? 1 : 0,
-                          transition: "all 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
+                          fontSize: "clamp(14px, 1.4vw, 18px)",
+                          fontWeight: 300,
+                          color: "rgba(255,255,255,0.92)",
+                          letterSpacing: "0.02em",
+                          margin: 0,
+                          lineHeight: 1.3,
                         }}
                       >
-                        <h3
-                          className="font-display"
+                        {product.title}
+                      </h3>
+                      {product.location && (
+                        <p
+                          className="font-body"
                           style={{
-                            fontSize: "clamp(14px, 1.4vw, 18px)",
+                            fontSize: 9,
                             fontWeight: 300,
-                            color: "rgba(255,255,255,0.92)",
-                            letterSpacing: "0.02em",
-                            margin: 0,
-                            lineHeight: 1.3,
+                            color: "rgba(255,255,255,0.4)",
+                            letterSpacing: "0.15em",
+                            textTransform: "uppercase",
+                            marginTop: 5,
                           }}
                         >
-                          {product.title}
-                        </h3>
-                        {product.location && (
-                          <p
-                            className="font-body"
-                            style={{
-                              fontSize: 9,
-                              fontWeight: 300,
-                              color: "rgba(255,255,255,0.4)",
-                              letterSpacing: "0.15em",
-                              textTransform: "uppercase",
-                              marginTop: 5,
-                            }}
-                          >
-                            {product.location}
-                          </p>
-                        )}
-                        {product.min_price > 0 && (
-                          <p
-                            className="font-body"
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 300,
-                              color: "rgba(255,255,255,0.5)",
-                              marginTop: 6,
-                            }}
-                          >
-                            Desde ${Number(product.min_price).toLocaleString("es-MX")} MXN
-                          </p>
-                        )}
-                      </div>
+                          {product.location}
+                        </p>
+                      )}
+                      {product.min_price > 0 && (
+                        <p
+                          className="font-body"
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 300,
+                            color: "rgba(255,255,255,0.5)",
+                            marginTop: 6,
+                          }}
+                        >
+                          Desde ${Number(product.min_price).toLocaleString("es-MX")} MXN
+                        </p>
+                      )}
                     </div>
                   </div>
                 </Link>
