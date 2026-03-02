@@ -13,12 +13,6 @@ const CATEGORY_FILTERS = [
   { key: "ART", label: "Arte" },
 ];
 
-// Map aspect ratio to row span so portrait images fill vertical space
-function getRowSpan(ar: string | null): number {
-  if (ar === "1:2" || ar === "1:3") return 3;  // very tall
-  if (ar === "2:3" || ar === "1:1") return 2;   // portrait/square
-  return 1;                                       // landscape (3:2, 2:1, 3:1, 4:1)
-}
 
 export default function GalleryGrid({
   products,
@@ -137,11 +131,10 @@ export default function GalleryGrid({
         {filteredProducts.length} obras
       </p>
 
-      {/* Grid - mosaic with auto-rows to eliminate gaps */}
+      {/* Grid - uniform cards */}
       <div
         style={{
           display: "grid",
-          gridAutoRows: "clamp(140px, 22vw, 200px)",
           gap: 6,
         }}
         className="grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
@@ -150,7 +143,6 @@ export default function GalleryGrid({
           {filteredProducts.map((product, i) => {
             const imageSrc = product.images?.[0]?.src;
             const isHovered = hoveredProduct === product.handle;
-            const rowSpan = getRowSpan(product.aspect_ratio);
 
             return (
               <motion.div
@@ -160,9 +152,6 @@ export default function GalleryGrid({
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.96 }}
                 transition={{ delay: Math.min(i * 0.02, 0.4), duration: 0.4 }}
-                style={{
-                  gridRow: `span ${rowSpan}`,
-                }}
               >
                 <Link
                   href={`/product/${product.handle}`}
@@ -172,7 +161,7 @@ export default function GalleryGrid({
                     background: "#ffffff",
                     textDecoration: "none",
                     width: "100%",
-                    height: "100%",
+                    aspectRatio: "1 / 1",
                     padding: 12,
                   }}
                   onMouseEnter={() => setHoveredProduct(product.handle)}
