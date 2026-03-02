@@ -528,7 +528,7 @@ export default function GalleryScene({
                 className="font-display"
                 style={{ fontSize: "clamp(20px, 3vw, 32px)", fontWeight: 300, letterSpacing: "0.5em", color: "rgba(255,255,255,0.45)" }}
               >
-                Ebehar
+                Emilio Ebehar
               </motion.span>
               <motion.div
                 initial={{ scaleX: 0 }}

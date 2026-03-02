@@ -12,7 +12,7 @@ export default function LoadingScreen() {
           transition={{ duration: 0.8 }}
         >
           <span className="text-3xl font-light tracking-[0.4em] text-white/80 uppercase">
-            EBEHAR
+            EMILIO EBEHAR
           </span>
         </motion.div>
         <motion.div

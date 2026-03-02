@@ -19,7 +19,7 @@ const body = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "EBEHAR | Fotograf\u00eda de Arte",
+  title: "EMILIO EBEHAR | Fotograf\u00eda de Arte",
   description:
     "Galer\u00eda inmersiva de fotograf\u00eda de arte. Obras originales certificadas de alta calidad.",
 };

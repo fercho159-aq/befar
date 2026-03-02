@@ -45,10 +45,10 @@ export async function generateMetadata({
   if (!product) return { title: "Producto no encontrado" };
 
   return {
-    title: `${product.title} | EBEHAR`,
+    title: `${product.title} | EMILIO EBEHAR`,
     description:
       product.seo_description ||
-      `${product.title} - Fotografía original certificada EBEHAR`,
+      `${product.title} - Fotografía original certificada EMILIO EBEHAR`,
   };
 }
 

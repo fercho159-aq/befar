@@ -14,7 +14,7 @@ export default function AboutPage() {
             El Artista
           </p>
           <h1 className="text-4xl md:text-6xl font-extralight tracking-wide text-white">
-            Emilio Behart
+            Emilio Ebehar
           </h1>
 
           <div className="mt-12 space-y-6 text-sm text-white/50 font-light leading-relaxed">
@@ -40,7 +40,7 @@ export default function AboutPage() {
 
           <div className="mt-16 pt-8 border-t border-white/5">
             <p className="text-[10px] tracking-[0.3em] text-white/20 uppercase">
-              Original Certified EBEHAR
+              Original Certified EMILIO EBEHAR
             </p>
           </div>
         </motion.div>

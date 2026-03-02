@@ -369,7 +369,7 @@ export default function ProductDetail({ product }: { product: ProductWithDetails
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "rgba(255,255,255,0.15)", flexShrink: 0 }}>
                   <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="font-body" style={{ fontSize: 11, color: "rgba(255,255,255,0.25)" }}>Certificaci&oacute;n Original EBEHAR</span>
+                <span className="font-body" style={{ fontSize: 11, color: "rgba(255,255,255,0.25)" }}>Certificaci&oacute;n Original EMILIO EBEHAR</span>
               </div>
             </div>
           </motion.div>
