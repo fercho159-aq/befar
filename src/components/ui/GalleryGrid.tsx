@@ -142,7 +142,7 @@ export default function GalleryGrid({
         style={{
           display: "grid",
           gridAutoRows: "clamp(140px, 22vw, 200px)",
-          gap: 3,
+          gap: 6,
         }}
         className="grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
       >
@@ -169,107 +169,109 @@ export default function GalleryGrid({
                   style={{
                     display: "block",
                     position: "relative",
-                    overflow: "hidden",
-                    background: "#0a0a0a",
+                    background: "#ffffff",
                     textDecoration: "none",
                     width: "100%",
                     height: "100%",
+                    padding: 12,
                   }}
                   onMouseEnter={() => setHoveredProduct(product.handle)}
                   onMouseLeave={() => setHoveredProduct(null)}
                 >
-                  {imageSrc ? (
-                    <Image
-                      src={imageSrc}
-                      alt={product.title}
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
-                      style={{
-                        objectFit: "cover",
-                        transition: "transform 0.7s cubic-bezier(0.22, 1, 0.36, 1)",
-                        transform: isHovered ? "scale(1.05)" : "scale(1)",
-                      }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        background: "#111",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <span style={{ color: "rgba(255,255,255,0.08)", fontSize: 11 }}>
-                        Sin imagen
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Hover overlay */}
-                  <div
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      background: isHovered
-                        ? "linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.15) 50%, transparent 100%)"
-                        : "linear-gradient(to top, rgba(0,0,0,0.25) 0%, transparent 25%)",
-                      transition: "all 0.5s ease",
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "flex-end",
-                      padding: "clamp(12px, 2vw, 20px)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        transform: isHovered ? "translateY(0)" : "translateY(6px)",
-                        opacity: isHovered ? 1 : 0,
-                        transition: "all 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
-                      }}
-                    >
-                      <h3
-                        className="font-display"
+                  <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden" }}>
+                    {imageSrc ? (
+                      <Image
+                        src={imageSrc}
+                        alt={product.title}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
                         style={{
-                          fontSize: "clamp(14px, 1.4vw, 18px)",
-                          fontWeight: 300,
-                          color: "rgba(255,255,255,0.92)",
-                          letterSpacing: "0.02em",
-                          margin: 0,
-                          lineHeight: 1.3,
+                          objectFit: "contain",
+                          transition: "transform 0.7s cubic-bezier(0.22, 1, 0.36, 1)",
+                          transform: isHovered ? "scale(1.05)" : "scale(1)",
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          background: "#f5f5f5",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
                         }}
                       >
-                        {product.title}
-                      </h3>
-                      {product.location && (
-                        <p
-                          className="font-body"
+                        <span style={{ color: "rgba(0,0,0,0.15)", fontSize: 11 }}>
+                          Sin imagen
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Hover overlay */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        background: isHovered
+                          ? "linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.15) 50%, transparent 100%)"
+                          : "transparent",
+                        transition: "all 0.5s ease",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "flex-end",
+                        padding: "clamp(8px, 1.5vw, 16px)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          transform: isHovered ? "translateY(0)" : "translateY(6px)",
+                          opacity: isHovered ? 1 : 0,
+                          transition: "all 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
+                        }}
+                      >
+                        <h3
+                          className="font-display"
                           style={{
-                            fontSize: 9,
+                            fontSize: "clamp(14px, 1.4vw, 18px)",
                             fontWeight: 300,
-                            color: "rgba(255,255,255,0.4)",
-                            letterSpacing: "0.15em",
-                            textTransform: "uppercase",
-                            marginTop: 5,
+                            color: "rgba(255,255,255,0.92)",
+                            letterSpacing: "0.02em",
+                            margin: 0,
+                            lineHeight: 1.3,
                           }}
                         >
-                          {product.location}
-                        </p>
-                      )}
-                      {product.min_price > 0 && (
-                        <p
-                          className="font-body"
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 300,
-                            color: "rgba(255,255,255,0.5)",
-                            marginTop: 6,
-                          }}
-                        >
-                          Desde ${Number(product.min_price).toLocaleString("es-MX")} MXN
-                        </p>
-                      )}
+                          {product.title}
+                        </h3>
+                        {product.location && (
+                          <p
+                            className="font-body"
+                            style={{
+                              fontSize: 9,
+                              fontWeight: 300,
+                              color: "rgba(255,255,255,0.4)",
+                              letterSpacing: "0.15em",
+                              textTransform: "uppercase",
+                              marginTop: 5,
+                            }}
+                          >
+                            {product.location}
+                          </p>
+                        )}
+                        {product.min_price > 0 && (
+                          <p
+                            className="font-body"
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 300,
+                              color: "rgba(255,255,255,0.5)",
+                              marginTop: 6,
+                            }}
+                          >
+                            Desde ${Number(product.min_price).toLocaleString("es-MX")} MXN
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </Link>

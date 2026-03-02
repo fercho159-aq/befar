@@ -80,7 +80,7 @@ export default function ProductDetail({ product }: { product: ProductWithDetails
         {/* Image */}
         <div style={{ position: "relative" }}>
           <div style={{ position: "sticky", top: 56 }}>
-            <div style={{ position: "relative", background: "#0a0a0a", overflow: "hidden", width: "100%", height: "calc(100dvh - 56px)" }}>
+            <div style={{ position: "relative", background: "#ffffff", overflow: "hidden", width: "100%", height: "calc(100dvh - 56px)", padding: 12 }}>
                 {activeImage ? (
                   <AnimatePresence mode="wait">
                     <motion.div
@@ -89,7 +89,7 @@ export default function ProductDetail({ product }: { product: ProductWithDetails
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.4 }}
-                      style={{ position: "absolute", inset: 0 }}
+                      style={{ position: "absolute", inset: 12 }}
                     >
                       <Image src={activeImage} alt={product.title} fill style={{ objectFit: "contain" }} sizes="(max-width: 1024px) 100vw, 50vw" priority />
                     </motion.div>
