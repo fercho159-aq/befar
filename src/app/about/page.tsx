@@ -14,7 +14,7 @@ export default function AboutPage() {
             El Artista
           </p>
           <h1 className="text-4xl md:text-6xl font-extralight tracking-wide text-white">
-            Emilio Ebehar
+            Emilio Behar
           </h1>
 
           <div className="mt-12 space-y-6 text-sm text-white/50 font-light leading-relaxed">

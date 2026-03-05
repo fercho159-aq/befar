@@ -45,6 +45,11 @@ export default function GalleryScene({
 
   const markInteracted = useCallback(() => {
     if (!hasInteracted) setHasInteracted(true);
+    autoplayPaused.current = true;
+    clearTimeout(autoplayResumeTimer.current);
+    autoplayResumeTimer.current = setTimeout(() => {
+      autoplayPaused.current = false;
+    }, 5000);
   }, [hasInteracted]);
 
   const goTo = useCallback(
@@ -60,6 +65,31 @@ export default function GalleryScene({
 
   const goNext = useCallback(() => goTo(activeGalleryIndex + 1), [activeGalleryIndex, goTo]);
   const goPrev = useCallback(() => goTo(activeGalleryIndex - 1), [activeGalleryIndex, goTo]);
+
+  // ── Auto-play: advance every 2 seconds ──
+  const autoplayPaused = useRef(false);
+  const autoplayResumeTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  // Pause autoplay on user interaction, resume after 5s
+  const pauseAutoplay = useCallback(() => {
+    autoplayPaused.current = true;
+    clearTimeout(autoplayResumeTimer.current);
+    autoplayResumeTimer.current = setTimeout(() => {
+      autoplayPaused.current = false;
+    }, 5000);
+  }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    const interval = setInterval(() => {
+      if (autoplayPaused.current || isAnimating.current) return;
+      // Loop back to 0 when at end
+      const nextIndex = activeGalleryIndex >= products.length - 1 ? 0 : activeGalleryIndex + 1;
+      setDirection(1);
+      setActiveGalleryIndex(nextIndex);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [loaded, activeGalleryIndex, products.length, setActiveGalleryIndex]);
 
   // ── Butter-smooth wheel handling ──
   useEffect(() => {
@@ -528,7 +558,7 @@ export default function GalleryScene({
                 className="font-display"
                 style={{ fontSize: "clamp(20px, 3vw, 32px)", fontWeight: 300, letterSpacing: "0.5em", color: "rgba(255,255,255,0.45)" }}
               >
-                Emilio Ebehar
+                Emilio Behar
               </motion.span>
               <motion.div
                 initial={{ scaleX: 0 }}

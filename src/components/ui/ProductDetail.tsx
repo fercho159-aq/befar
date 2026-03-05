@@ -89,7 +89,7 @@ export default function ProductDetail({ product }: { product: ProductWithDetails
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.4 }}
-                      style={{ position: "absolute", inset: 0 }}
+                      style={{ position: "absolute", inset: "clamp(16px, 3vw, 48px)" }}
                     >
                       <Image src={activeImage} alt={product.title} fill style={{ objectFit: "contain" }} sizes="(max-width: 1024px) 100vw, 50vw" priority />
                     </motion.div>

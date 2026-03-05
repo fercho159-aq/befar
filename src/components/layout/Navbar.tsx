@@ -2,6 +2,7 @@
 
 import { useStore } from "@/store/useStore";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -86,20 +87,21 @@ export default function Navbar() {
           }}
         >
           {/* Logo */}
-          <Link href="/" style={{ textDecoration: "none" }}>
-            <span
-              className="font-display"
+          <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
+            <Image
+              src="/logo-ebehar.png"
+              alt="Ebehar Photography"
+              width={160}
+              height={40}
               style={{
-                fontSize: "clamp(16px, 1.8vw, 20px)",
-                fontWeight: 300,
-                letterSpacing: "0.3em",
-                color: "rgba(255,255,255,0.9)",
-                textTransform: "uppercase",
+                height: "clamp(28px, 3vw, 38px)",
+                width: "auto",
+                filter: "brightness(0) invert(1)",
+                opacity: 0.9,
                 userSelect: "none",
               }}
-            >
-              Emilio Ebehar
-            </span>
+              priority
+            />
           </Link>
 
           {/* Desktop nav links (center) */}
