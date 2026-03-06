@@ -68,7 +68,7 @@ export default function GalleryScene({
 
   // ── Auto-play: advance every 2 seconds ──
   const autoplayPaused = useRef(false);
-  const autoplayResumeTimer = useRef<ReturnType<typeof setTimeout>>();
+  const autoplayResumeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Pause autoplay on user interaction, resume after 5s
   const pauseAutoplay = useCallback(() => {
